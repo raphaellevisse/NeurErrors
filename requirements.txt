@@ -1,0 +1,7 @@
+numpy 
+caveclient
+torch
+torch_geometric # for treating the graph data
+tqdm 
+matplotlib
+pandas # for data manipulation coming from the chunkedgraph

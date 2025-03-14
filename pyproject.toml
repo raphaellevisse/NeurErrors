@@ -1,0 +1,17 @@
+[project]
+name = "neurerrors"
+version = "0.1.0"
+description = "Proofreading analysis Tools"
+authors = [{ name = "Raphael Levisse" }]
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux"
+]
+license= {text = "MIT License"}
+
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
