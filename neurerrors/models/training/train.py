@@ -15,18 +15,8 @@ from torch_geometric.data import Data
 from neurerrors.models.training.model_architecture.Neuron_GNN import GCNGlobalPredictor3_5
 from neurerrors.models.training.evaluate import evaluate_model
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from neurerrors.models.training.utils.GraphDataset import GraphDataset
 
-
-class GraphDataset(Dataset):
-    def __init__(self, data):
-        self.data = data
-        self.num_graphs = len(data)
-
-    def __len__(self):
-        return self.num_graphs
-
-    def __getitem__(self, idx):
-        return self.data[idx]
 
 def load_data(train_path, val_path):
     try:

@@ -31,13 +31,13 @@ class GCNGlobalPredictor3_5(nn.Module):
         self.conv5 = pyg_nn.GCNConv(hidden_channels, hidden_channels)
         self.conv6 = pyg_nn.GCNConv(hidden_channels, hidden_channels)
         self.conv7 = pyg_nn.GCNConv(hidden_channels, hidden_channels)
-        self.layer_norm1 = nn.BatchNorm1d(hidden_channels)
-        self.layer_norm2 = nn.BatchNorm1d(hidden_channels)
-        self.layer_norm3 = nn.BatchNorm1d(hidden_channels)
-        self.layer_norm4 = nn.BatchNorm1d(hidden_channels)
-        self.layer_norm5 = nn.BatchNorm1d(hidden_channels)
-        self.layer_norm6 = nn.BatchNorm1d(hidden_channels)
-        self.layer_norm7 = nn.BatchNorm1d(hidden_channels)
+        self.layer_norm1 = nn.LayerNorm(hidden_channels)
+        self.layer_norm2 = nn.LayerNorm(hidden_channels)
+        self.layer_norm3 = nn.LayerNorm(hidden_channels)
+        self.layer_norm4 = nn.LayerNorm(hidden_channels)
+        self.layer_norm5 = nn.LayerNorm(hidden_channels)
+        self.layer_norm6 = nn.LayerNorm(hidden_channels)
+        self.layer_norm7 = nn.LayerNorm(hidden_channels)
         
         # Global MLP layers for initial and refined global representations
         # Global MLP layers for initial and refined global representations
@@ -90,6 +90,7 @@ class GCNGlobalPredictor3_5(nn.Module):
         self.node_classifier = nn.Linear(hidden_channels, out_channels)
         self.dropout = dropout
         
+        # Pooling method
         if pooling == "mean":
             self.pool = global_mean_pool
         elif pooling == "add":
@@ -105,6 +106,7 @@ class GCNGlobalPredictor3_5(nn.Module):
         global_init = self.pool(x, batch)
         global_repr_init = self.global_mlp_init(global_init)
         global_repr_expanded_init = global_repr_init[batch] # Broadcast global representation per node
+
 
         x = self.node_mlp(x)
         

@@ -4,15 +4,27 @@ import json
 import urllib.parse
 import matplotlib.pyplot as plt
 
-def get_visualization_url(seg_id:int, error_features:list[list[float]], em_data_url:str, segmentation_url:str, local_host: bool = True, voxel_resolution:np.ndarray = np.array([16,16,40]), crossSectionScale:float = 0.5, projectionScale:float = 1500)->list[str]:
+def get_visualization_url(seg_id:int, error_features:list[list[float]], em_data_url:str, segmentation_url:str, local_host: bool = True, voxel_resolution:np.ndarray = np.array([16,16,40]), crossSectionScale:float = 0.5, projectionScale:float = 1500, l2_nodes= None)->list[str]:
     """
         This function returns the list of urls for a given neuron. It will look at the selected nodes and give back an url for each selected node.
         Careful: the JSON state is hardcoded, if you want to change it, you need to change it here.
     """
-    error_nodes_coords = error_features[:, :3]
-    error_nodes_types = error_features[:, 3]
-    merge_coords = error_nodes_coords[error_nodes_types == 0]
-    split_coords = error_nodes_coords[error_nodes_types == 1]
+    if error_features.ndim == 1:
+        print("No Error Features associated with this segment. Position will be put to 0,0,0")
+        merge_coords = []
+        split_coords = []
+        voxel_coordinate = [0,0,0]
+    else:
+        error_nodes_coords = error_features[:, :3]
+        error_nodes_types = error_features[:, 3]
+        merge_coords = error_nodes_coords[error_nodes_types == 0]
+        split_coords = error_nodes_coords[error_nodes_types == 1]
+        node_number = 0 # TODO: change this to the node number you want to visualize, takes you to the position of the node chosen.
+        voxel_coordinate = [
+            error_nodes_coords[node_number][0].item() / voxel_resolution[0],
+            error_nodes_coords[node_number][1].item() / voxel_resolution[1],
+            error_nodes_coords[node_number][2].item() / voxel_resolution[2],
+        ]
     merge_annotations = []
     split_annotations = []
     for i, coord in enumerate(merge_coords):
@@ -28,12 +40,12 @@ def get_visualization_url(seg_id:int, error_features:list[list[float]], em_data_
             "id": f"annotation_{i}"
         })
     base_url = "http://localhost:8000/client/#!" if local_host else "https://neuroglancer-demo.appspot.com/#!"
-    node_number = 0 # TODO: change this to the node number you want to visualize, takes you to the position of the node chosen.
-    voxel_coordinate = [
-        error_nodes_coords[node_number][0].item() / voxel_resolution[0],
-        error_nodes_coords[node_number][1].item() / voxel_resolution[1],
-        error_nodes_coords[node_number][2].item() / voxel_resolution[2],
-    ]
+
+
+    if l2_nodes is not None:
+        segments = list(map(str, l2_nodes.tolist()))
+    else:
+        segments =[]
     json_state = {
             "dimensions": {
                         "x": [
@@ -61,8 +73,18 @@ def get_visualization_url(seg_id:int, error_features:list[list[float]], em_data_
             "source": segmentation_url,
             "type": "segmentation",
             "segments": [str(seg_id)],
+            "color": "#0000FF",
             "colorSeed": 883605311,
-            "name": "Segmentation"
+            "name": "Seg ID"
+        },
+        {
+            "tab": "segments",
+            "source": segmentation_url,
+            "type": "segmentation",
+            "segments": segments,
+            "color": "#FF0000",
+            "colorSeed": 883605311,
+            "name": "L2 Segments"
         },
         {
             "tool": "annotatePoint",
@@ -163,7 +185,7 @@ def get_visualization_url(seg_id:int, error_features:list[list[float]], em_data_
     return f"{base_url}{encoded_string}"
 
 
-def visualize_graph_3d(node_features, edge_index):
+def visualize_graph_3d(node_features, edge_index, error_features):
     """
     Visualizes a graph in 3D space using the node features and edge index.
     
@@ -180,6 +202,7 @@ def visualize_graph_3d(node_features, edge_index):
     z = node_features[:, 2].numpy()
     
     ax.scatter(x, y, z, c='b', marker='o', s=50, label='Nodes')
+    ax.scatter(error_features[:, 0], error_features[:, 1], error_features[:, 2], c='r', marker='x', s=50, label='Error Nodes')
     # Plot the edges
     for i in range(edge_index.size(1)):
         start_node = edge_index[0, i].item()

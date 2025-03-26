@@ -62,7 +62,7 @@ def weight_operation(client, prev_seg_id, current_seg_id, merge, split):
     if split:
         return min(len(lvl2nodes1) - len(removed_leaves), len(removed_leaves))
 
-def get_descendants_with_operations(client, seg_id, voxel_resolution, verbose=False):
+def get_descendants_with_operations(client, seg_id, voxel_resolution, find_operation_weights=False, verbose=False):
     """
     Retrieves all descendant nodes of a given root in the chunked graph and identifies 
     merge or split operations associated with the root.
@@ -119,10 +119,9 @@ def get_descendants_with_operations(client, seg_id, voxel_resolution, verbose=Fa
         merge = False
         split = False
         op_details = all_op_details[str(op)]
-        
-        if 'added_edges' in op_details.keys() and len(set(op_details['added_edges'][0]).intersection(seg_id_edges)) != 0:
+        if 'added_edges' in op_details and any(set(edge).intersection(seg_id_edges) for edge in op_details['added_edges']):
             merge = True
-        elif 'removed_edges' in op_details.keys() and len(set(op_details['removed_edges'][0]).intersection(seg_id_edges)) != 0:
+        elif 'removed_edges' in op_details and any(set(edge).intersection(seg_id_edges) for edge in op_details['removed_edges']):
             split = True
         else:
             continue
@@ -139,18 +138,21 @@ def get_descendants_with_operations(client, seg_id, voxel_resolution, verbose=Fa
         operation_type = 0 if merge else 1 if split else 2
         resolution = voxel_resolution
         avg_coord *= resolution
-        try:
-            prev_seg_id = op_details['roots'][0] # we want to get the previous root id in the lineage graph. The problem with op_details['roots'][0] is that it can give some random root id 
-            current_seg_id = operations_to_root[op] # this gets the node from which the operation is coming from
-            parents = list(nxgraph.predecessors(current_seg_id))
-            if parents:
-                prev_seg_id = parents[0]
-            else:
-                print(f"Node {current_seg_id} has no parents.")
-            operation_weight = weight_operation(client, prev_seg_id, current_seg_id, merge, split)
-        except Exception as e:
-            if verbose:
-                print(f"Error weighting operation {op}: {e}")
+        if find_operation_weights:
+            try:
+                prev_seg_id = op_details['roots'][0] # we want to get the previous root id in the lineage graph. The problem with op_details['roots'][0] is that it can give some random root id 
+                current_seg_id = operations_to_root[op] # this gets the node from which the operation is coming from
+                parents = list(nxgraph.predecessors(current_seg_id))
+                if parents:
+                    prev_seg_id = parents[0]
+                else:
+                    print(f"Node {current_seg_id} has no parents.")
+                operation_weight = weight_operation(client, prev_seg_id, current_seg_id, merge, split)
+            except Exception as e:
+                if verbose:
+                    print(f"Error weighting operation {op}: {e}")
+                operation_weight = 1
+        else:
             operation_weight = 1
         error_features.append([*avg_coord, operation_type, operation_weight, op])
         operations_set.add(op)
